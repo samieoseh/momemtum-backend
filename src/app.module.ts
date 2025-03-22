@@ -10,9 +10,7 @@ import { UsersModule } from './users/users.module';
 @Module({
   imports: [
     ConfigModule.forRoot(),
-    MongooseModule.forRoot(
-      process.env.DATABASE_URI || 'mongodb://localhost/momemtum-db',
-    ),
+    MongooseModule.forRoot(process.env.DATABASE_URI || ''),
     UsersModule,
   ],
   controllers: [AppController],
