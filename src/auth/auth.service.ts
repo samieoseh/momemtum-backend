@@ -23,31 +23,29 @@ export class AuthService {
     return await this.userModel.findOne({ email });
   }
 
-  async signup(signupDto: SignupDto): Promise<{ _id: string }> {
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(signupDto.password, salt);
-    const user = await this.findByEmail(signupDto.email);
+  async signup(signupDto: SignupDto) {
+    try {
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(signupDto.password, salt);
 
-    if (user) {
-      throw new ConflictException('User already exists');
+      await this.userModel.create({ ...signupDto, password: passwordHash });
+
+      // get the saved user
+      const savedUser = await this.findByEmail(signupDto.email);
+      if (!savedUser) {
+        throw new NotFoundException('User not found');
+      }
+
+      return { _id: savedUser?._id.toString() };
+    } catch (error) {
+      if (error.code === 11000) {
+        throw new ConflictException('User already exists');
+      }
+      throw error;
     }
-
-    await this.userModel.create({ ...signupDto, password: passwordHash });
-
-    // get the saved user
-    const savedUser = await this.findByEmail(signupDto.email);
-    if (!savedUser) {
-      throw new NotFoundException('User not found');
-    }
-
-    return { _id: savedUser?._id.toString() };
   }
 
-  async login(loginDto: LoginDto): Promise<{
-    _id: string;
-    email: string;
-    accessToken: string;
-  }> {
+  async login(loginDto: LoginDto) {
     const userAccount = await this.findByEmail(loginDto.email);
 
     if (!userAccount) {

@@ -21,6 +21,7 @@ describe('AuthService', () => {
     findOne: jest.fn(),
     create: jest.fn(),
     save: jest.fn(),
+    deleteMany: jest.fn().mockResolvedValue({}),
   };
 
   const mockJwtService = {
@@ -44,6 +45,9 @@ describe('AuthService', () => {
 
     service = module.get<AuthService>(AuthService);
     jwtService = module.get<JwtService>(JwtService);
+    if (mockUserModel.deleteMany) {
+      await mockUserModel.deleteMany();
+    }
   });
 
   it('should be defined', () => {
