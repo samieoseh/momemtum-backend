@@ -2,12 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { SignupDto } from './dto/signup-dto';
 import { AuthService } from './auth.service';
+import { LoginDto } from './dto/login-dto';
 
 describe('AuthController', () => {
   let controller: AuthController;
   let authService: AuthService;
   const mockAuthService = {
     signup: jest.fn(),
+    login: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -20,47 +22,86 @@ describe('AuthController', () => {
     authService = module.get<AuthService>(AuthService);
   });
 
-  it('should call AuthService.signup with correct data', async () => {
-    const dto: SignupDto = {
-      email: 'test@example.com',
-      password: 'password123',
-      firstName: 'Test',
-      lastName: 'User',
-    };
-    mockAuthService.signup.mockResolvedValue({
-      id: 1,
-      message: 'User signup successful',
+  describe('signup', () => {
+    it('should call AuthService.signup with correct data', async () => {
+      const dto: SignupDto = {
+        email: 'test@example.com',
+        password: 'password123',
+        firstName: 'Test',
+        lastName: 'User',
+      };
+      mockAuthService.signup.mockResolvedValue({
+        id: 1,
+        message: 'User signup successful',
+      });
+
+      await controller.signup(dto);
+
+      expect(authService.signup).toHaveBeenCalledWith(dto);
     });
 
-    await controller.signup(dto);
+    it('should return the result from AuthService.signup', async () => {
+      const dto: SignupDto = {
+        email: 'test@example.com',
+        password: 'password123',
+        firstName: 'Test',
+        lastName: 'User',
+      };
+      const expectedResponse = {
+        id: 1,
+        email: dto.email,
+      };
+      mockAuthService.signup.mockResolvedValue(expectedResponse);
 
-    expect(authService.signup).toHaveBeenCalledWith(dto);
+      const result = await controller.signup(dto);
+
+      expect(result).toEqual({
+        user: expectedResponse,
+        message: 'User created successfully',
+      });
+    });
+
+    it('should throw an error if AuthService.signup fails', async () => {
+      const dto: SignupDto = {
+        email: 'test@example.com',
+        password: 'password123',
+        firstName: 'Test',
+        lastName: 'User',
+      };
+      mockAuthService.signup.mockRejectedValue(new Error('Signup failed'));
+
+      await expect(controller.signup(dto)).rejects.toThrow('Signup failed');
+    });
   });
 
-  it('should return the result from AuthService.signup', async () => {
-    const dto: SignupDto = {
-      email: 'test@example.com',
-      password: 'password123',
-      firstName: 'Test',
-      lastName: 'User',
-    };
-    const expectedResponse = { id: 1, email: dto.email };
-    mockAuthService.signup.mockResolvedValue(expectedResponse);
+  describe('login', () => {
+    it('should call the AuthService.login with correct data', async () => {
+      const dto: LoginDto = {
+        email: 'test@example.com',
+        password: 'password@123',
+      };
 
-    const result = await controller.signup(dto);
+      mockAuthService.login.mockResolvedValue({
+        id: 1,
+        message: 'User login successful',
+      });
+      await controller.login(dto);
+      expect(authService.login).toHaveBeenCalledWith(dto);
+    });
 
-    expect(result).toEqual(expectedResponse);
-  });
+    it('should return the result from AuthService.login', async () => {
+      const dto: LoginDto = {
+        email: 'test@example.com',
+        password: 'password@123',
+      };
+      const expectedResponse = { id: 1, email: dto.email };
+      mockAuthService.login.mockResolvedValue(expectedResponse);
 
-  it('should throw an error if AuthService.signup fails', async () => {
-    const dto: SignupDto = {
-      email: 'test@example.com',
-      password: 'password123',
-      firstName: 'Test',
-      lastName: 'User',
-    };
-    mockAuthService.signup.mockRejectedValue(new Error('Signup failed'));
-
-    await expect(controller.signup(dto)).rejects.toThrow('Signup failed');
+      const result = await controller.login(dto);
+      expect(result).toEqual({
+        user: expectedResponse,
+        message: 'User login successfully',
+      });
+    });
   });
 });
