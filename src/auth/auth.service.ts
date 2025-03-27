@@ -34,6 +34,7 @@ export class AuthService {
 
     await this.userModel.create({ ...signupDto, password: passwordHash });
 
+    // get the saved user
     const savedUser = await this.findByEmail(signupDto.email);
     if (!savedUser) {
       throw new NotFoundException('User not found');
