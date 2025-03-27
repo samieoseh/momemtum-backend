@@ -126,9 +126,9 @@ describe('AuthService', () => {
       const result = await service.login(loginDto);
 
       expect(result).toEqual({
-        user: { _id: mockUser._id, email: mockUser.email },
+        _id: mockUser._id,
+        email: mockUser.email,
         accessToken: 'mocked-jwt-token',
-        message: 'User login successful',
       });
       expect(jwtService.sign).toHaveBeenCalledWith({ sub: '123' });
       expect(bcrypt.compare).toHaveBeenCalledWith('123456', '123456');
