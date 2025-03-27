@@ -1,0 +1,47 @@
+name: Node.JS CI/CD
+
+on:
+  push:
+    branches: [staging]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [16.x]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Tests
+        run: npm run test
+        env:
+          DATABASE_URI: ${{ secrets.DATABASE_URI }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+
+  deploy:
+    name: Deploy
+    needs: [test]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Render
+        uses: johnbeynon/render-deploy-action@v0.0.8
+        with:
+          service-id: ${{ secrets.SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
