@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -25,17 +26,21 @@ export class AuthService {
   async signup(signupDto: SignupDto): Promise<{ _id: string }> {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(signupDto.password, salt);
+    const user = await this.findByEmail(signupDto.email);
+
+    if (user) {
+      throw new ConflictException('User already exists');
+    }
 
     await this.userModel.create({ ...signupDto, password: passwordHash });
 
-    // find the user by email
-    const user = await this.findByEmail(signupDto.email);
-
-    if (!user) {
+    // get the saved user
+    const savedUser = await this.findByEmail(signupDto.email);
+    if (!savedUser) {
       throw new NotFoundException('User not found');
     }
 
-    return { _id: user?._id.toString() };
+    return { _id: savedUser?._id.toString() };
   }
 
   async login(loginDto: LoginDto): Promise<{
