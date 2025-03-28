@@ -106,6 +106,7 @@ export class AuthService {
       }
 
       if (password !== confirmPassword) {
+        console.log('Password does not match');
         throw new UnauthorizedException('Password does not match');
       }
 
@@ -117,6 +118,7 @@ export class AuthService {
       if (error.name === 'JsonWebTokenError') {
         throw new UnauthorizedException('Invalid token');
       }
+      throw error;
     }
   }
 }
