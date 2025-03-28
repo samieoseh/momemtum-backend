@@ -6,6 +6,8 @@ import { NotFoundException } from '@nestjs/common';
 import { LoginDto } from './dto/login-dto';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
+import { ForgetPasswordDto } from './dto/forgot-password-dto';
+import { MailerService } from '@nestjs-modules/mailer';
 
 jest.mock('bcryptjs', () => ({
   hash: jest.fn(),
@@ -16,6 +18,9 @@ jest.mock('bcryptjs', () => ({
 describe('AuthService', () => {
   let service: AuthService;
   let jwtService: JwtService;
+  let mailService: MailerService;
+
+  let mockSendMail;
 
   const mockUserModel = {
     findOne: jest.fn(),
@@ -28,13 +33,23 @@ describe('AuthService', () => {
     sign: jest.fn().mockReturnValue('mocked-jwt-token'),
   };
 
+  const mockMailerService = {
+    sendMail: jest.fn().mockResolvedValue(true), // Mock sendMail
+  };
+
   beforeEach(async () => {
+    mockSendMail = jest.fn().mockResolvedValue(true);
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         {
           provide: JwtService,
           useValue: mockJwtService,
+        },
+        {
+          provide: MailerService,
+          useValue: mockMailerService,
         },
         {
           provide: getModelToken('User'),
@@ -45,6 +60,8 @@ describe('AuthService', () => {
 
     service = module.get<AuthService>(AuthService);
     jwtService = module.get<JwtService>(JwtService);
+    mailService = module.get<MailerService>(MailerService);
+
     if (mockUserModel.deleteMany) {
       await mockUserModel.deleteMany();
     }
@@ -136,6 +153,22 @@ describe('AuthService', () => {
       });
       expect(jwtService.sign).toHaveBeenCalledWith({ sub: '123' });
       expect(bcrypt.compare).toHaveBeenCalledWith('123456', '123456');
+    });
+  });
+
+  describe('forgotPassword', () => {
+    it('should send a reset password link to the email', async () => {
+      const forgotPasswordDto: ForgetPasswordDto = {
+        email: 'test@example.com',
+      };
+
+      await service.forgotPassword(forgotPasswordDto);
+      expect(mockMailerService.sendMail).toHaveBeenCalledWith({
+        from: '"Support" <samueloseh007@gmail.com>',
+        to: forgotPasswordDto.email,
+        subject: 'Password Reset',
+        html: '<a>Click here to reset your password</a>',
+      });
     });
   });
 });

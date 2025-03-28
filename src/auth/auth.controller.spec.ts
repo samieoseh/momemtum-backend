@@ -3,6 +3,7 @@ import { AuthController } from './auth.controller';
 import { SignupDto } from './dto/signup-dto';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login-dto';
+import { ForgetPasswordDto } from './dto/forgot-password-dto';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -10,6 +11,7 @@ describe('AuthController', () => {
   const mockAuthService = {
     signup: jest.fn(),
     login: jest.fn(),
+    forgotPassword: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -102,6 +104,36 @@ describe('AuthController', () => {
         user: expectedResponse,
         message: 'User login successfully',
       });
+    });
+
+    it('should call the AuthService.forgetPassword with correct data', async () => {
+      const dto: ForgetPasswordDto = {
+        email: 'test@example.com',
+      };
+
+      mockAuthService.forgotPassword.mockResolvedValue({
+        message: 'A password reset linked have been sent to the provided email',
+      });
+
+      await controller.forgotPassword(dto);
+      expect(authService.forgotPassword).toHaveBeenCalledWith(dto);
+    });
+
+    it('should return the correct response on success', async () => {
+      const dto: ForgetPasswordDto = {
+        email: 'test@example.com',
+      };
+
+      const expectedResponse = {
+        message: 'A password reset link have been sent to the provided email',
+      };
+      mockAuthService.forgotPassword.mockResolvedValue({
+        message: 'A password reset link have been sent to the provided email',
+      });
+
+      const result = await controller.forgotPassword(dto);
+
+      expect(result).toEqual(expectedResponse);
     });
   });
 });

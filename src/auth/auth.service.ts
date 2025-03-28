@@ -11,12 +11,15 @@ import { User } from './domain/user.schema';
 import * as bcrypt from 'bcryptjs';
 import { LoginDto } from './dto/login-dto';
 import { JwtService } from '@nestjs/jwt';
+import { ForgetPasswordDto } from './dto/forgot-password-dto';
+import { MailerService } from '@nestjs-modules/mailer';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
     private jwtService: JwtService,
+    private readonly mailService: MailerService,
   ) {}
 
   async findByEmail(email: string) {
@@ -69,5 +72,20 @@ export class AuthService {
       email: userAccount?.email,
       accessToken,
     };
+  }
+
+  async forgotPassword(forgotPasswordDto: ForgetPasswordDto) {
+    const user = await this.findByEmail(forgotPasswordDto.email);
+
+    if (!user) {
+      throw new NotFoundException('User does not exist');
+    }
+
+    await this.mailService.sendMail({
+      from: '"Support" <samueloseh007@gmail.com>',
+      to: forgotPasswordDto.email,
+      subject: 'Password Reset',
+      html: '<a>Click here to reset your password</a>',
+    });
   }
 }
