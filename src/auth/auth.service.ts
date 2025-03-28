@@ -99,19 +99,24 @@ export class AuthService {
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
     const { password, confirmPassword, token } = resetPasswordDto;
 
-    const decodedToken = this.jwtService.verify(token);
+    try {
+      const decodedToken = this.jwtService.verify(token);
+      if (!decodedToken) {
+        throw new UnauthorizedException('Invalid token');
+      }
 
-    if (!decodedToken) {
-      throw new UnauthorizedException('Invalid token');
+      if (password !== confirmPassword) {
+        throw new UnauthorizedException('Password does not match');
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(password, salt);
+
+      await this.userModel.updateOne({ password: passwordHash });
+    } catch (error) {
+      if (error.name === 'JsonWebTokenError') {
+        throw new UnauthorizedException('Invalid token');
+      }
     }
-
-    if (password !== confirmPassword) {
-      throw new UnauthorizedException('Password does not match');
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
-
-    await this.userModel.updateOne({ password: passwordHash });
   }
 }
