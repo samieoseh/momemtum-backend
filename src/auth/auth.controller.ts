@@ -3,6 +3,7 @@ import { SignupDto } from './dto/signup-dto';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login-dto';
 import { ForgetPasswordDto } from './dto/forgot-password-dto';
+import { ResetPasswordDto } from './dto/reset-password-dto';
 
 @Controller('auth')
 export class AuthController {
@@ -26,6 +27,15 @@ export class AuthController {
     await this.authService.forgotPassword(forgotPasswordDto);
     return {
       message: 'A password reset link have been sent to the provided email',
+    };
+  }
+
+  @Post('/reset-password')
+  @HttpCode(200)
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    await this.authService.resetPassword(resetPasswordDto);
+    return {
+      message: 'Password has been reset successfully',
     };
   }
 }
