@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -116,8 +117,13 @@ export class AuthService {
       await this.userModel.updateOne({ password: passwordHash });
     } catch (error) {
       if (error.name === 'JsonWebTokenError') {
-        throw new UnauthorizedException('Invalid token');
+        throw new BadRequestException('Invalid token');
       }
+
+      if (error.name === 'TokenExpiredError') {
+        throw new BadRequestException('Token expired');
+      }
+
       throw error;
     }
   }
