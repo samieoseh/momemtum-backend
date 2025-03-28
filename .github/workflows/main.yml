@@ -36,6 +36,7 @@ jobs:
           EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
           EMAIL_USERNAME: ${{ secrets.EMAIL_USERNAME }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          FRONTEND_DOMAIN: ${{ secrets.FRONTEND_DOMAIN }}
 
   deploy:
     name: Deploy
