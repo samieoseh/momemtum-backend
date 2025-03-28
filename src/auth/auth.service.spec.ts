@@ -2,12 +2,16 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { SignupDto } from './dto/signup-dto';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { LoginDto } from './dto/login-dto';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { ForgetPasswordDto } from './dto/forgot-password-dto';
 import { MailerService } from '@nestjs-modules/mailer';
+import { mock } from 'node:test';
+import { ConfigModule } from '@nestjs/config';
+import { ResetPasswordDto } from './dto/reset-password-dto';
+import { verify } from 'crypto';
 
 jest.mock('bcryptjs', () => ({
   hash: jest.fn(),
@@ -26,11 +30,13 @@ describe('AuthService', () => {
     findOne: jest.fn(),
     create: jest.fn(),
     save: jest.fn(),
+    updateOne: jest.fn(),
     deleteMany: jest.fn().mockResolvedValue({}),
   };
 
   const mockJwtService = {
     sign: jest.fn().mockReturnValue('mocked-jwt-token'),
+    verify: jest.fn().mockReturnValue({ sub: 'mocked-sub' }),
   };
 
   const mockMailerService = {
@@ -41,6 +47,7 @@ describe('AuthService', () => {
     mockSendMail = jest.fn().mockResolvedValue(true);
 
     const module: TestingModule = await Test.createTestingModule({
+      imports: [ConfigModule.forRoot()],
       providers: [
         AuthService,
         {
@@ -157,18 +164,71 @@ describe('AuthService', () => {
   });
 
   describe('forgotPassword', () => {
-    it('should send a reset password link to the email', async () => {
+    it('should send a jwt token with 15 minutes expiry time attached to the url sent to the email', async () => {
       const forgotPasswordDto: ForgetPasswordDto = {
         email: 'test@example.com',
       };
 
       await service.forgotPassword(forgotPasswordDto);
+
+      expect(jwtService.sign).toHaveBeenCalledWith(
+        { sub: forgotPasswordDto.email },
+        { expiresIn: '15m' },
+      );
+
       expect(mockMailerService.sendMail).toHaveBeenCalledWith({
         from: '"Support" <samueloseh007@gmail.com>',
         to: forgotPasswordDto.email,
         subject: 'Password Reset',
-        html: '<a>Click here to reset your password</a>',
+        html: `<a href="${process.env.FRONTEND_DOMAIN}/auth/reset-password/mocked-jwt-token">Click here to reset your password</a>`,
       });
+    });
+  });
+
+  describe('resetPassword', () => {
+    it("should reset the user's password", async () => {
+      const resetPasswordDto: ResetPasswordDto = {
+        password: 'newpassword',
+        confirmPassword: 'newpassword',
+        token: 'mocked-jwt-token',
+      };
+
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-newpassword');
+      (bcrypt.genSalt as jest.Mock).mockResolvedValue('mocked-salt');
+      await service.resetPassword(resetPasswordDto);
+      expect(bcrypt.hash).toHaveBeenCalledWith(
+        resetPasswordDto.password,
+        'mocked-salt',
+      );
+      expect(mockUserModel.updateOne).toHaveBeenCalledWith({
+        password: 'hashed-newpassword',
+      });
+    });
+
+    it('should throw UnauthorizedException if passwords do not match', async () => {
+      const resetPasswordDto: ResetPasswordDto = {
+        password: 'newpassword',
+        confirmPassword: 'differentpassword',
+        token: 'mocked-jwt-token',
+      };
+
+      await expect(service.resetPassword(resetPasswordDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('should throw BadRequestException if token is invalid', async () => {
+      const resetPasswordDto: ResetPasswordDto = {
+        password: 'newpassword',
+        confirmPassword: 'newpassword',
+        token: '123',
+      };
+      (jwtService.verify as jest.Mock).mockImplementation(() => {
+        throw new UnauthorizedException('Invalid token');
+      });
+      await expect(service.resetPassword(resetPasswordDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 });

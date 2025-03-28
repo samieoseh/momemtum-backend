@@ -4,6 +4,7 @@ import { SignupDto } from './dto/signup-dto';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login-dto';
 import { ForgetPasswordDto } from './dto/forgot-password-dto';
+import { ResetPasswordDto } from './dto/reset-password-dto';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -12,6 +13,7 @@ describe('AuthController', () => {
     signup: jest.fn(),
     login: jest.fn(),
     forgotPassword: jest.fn(),
+    resetPassword: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -105,7 +107,9 @@ describe('AuthController', () => {
         message: 'User login successfully',
       });
     });
+  });
 
+  describe('forgotPassword', () => {
     it('should call the AuthService.forgetPassword with correct data', async () => {
       const dto: ForgetPasswordDto = {
         email: 'test@example.com',
@@ -133,6 +137,39 @@ describe('AuthController', () => {
 
       const result = await controller.forgotPassword(dto);
 
+      expect(result).toEqual(expectedResponse);
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('should call the AuthService.resetPassword with correct data', async () => {
+      const dto: ResetPasswordDto = {
+        password: '123456',
+        confirmPassword: '123456',
+        token: 'mocked-jwt-token',
+      };
+
+      mockAuthService.resetPassword.mockResolvedValue({
+        message: 'Password reset successfully',
+      });
+      await controller.resetPassword(dto);
+
+      expect(authService.resetPassword).toHaveBeenCalledWith(dto);
+    });
+    it('should return the correct response on success', async () => {
+      const dto: ResetPasswordDto = {
+        password: '123456',
+        confirmPassword: '123456',
+        token: 'mocked-jwt-token',
+      };
+      const expectedResponse = {
+        message: 'Password has been reset successfully',
+      };
+
+      mockAuthService.resetPassword.mockResolvedValue({
+        message: 'Password has been reset successfully',
+      });
+      const result = await controller.resetPassword(dto);
       expect(result).toEqual(expectedResponse);
     });
   });

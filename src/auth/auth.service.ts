@@ -13,6 +13,7 @@ import { LoginDto } from './dto/login-dto';
 import { JwtService } from '@nestjs/jwt';
 import { ForgetPasswordDto } from './dto/forgot-password-dto';
 import { MailerService } from '@nestjs-modules/mailer';
+import { ResetPasswordDto } from './dto/reset-password-dto';
 
 @Injectable()
 export class AuthService {
@@ -81,11 +82,36 @@ export class AuthService {
       throw new NotFoundException('User does not exist');
     }
 
+    const token = this.jwtService.sign(
+      { sub: forgotPasswordDto.email },
+      { expiresIn: '15m' },
+    );
+    const resetLinkHtml = `<a href="${process.env.FRONTEND_DOMAIN}/auth/reset-password/${token}">Click here to reset your password</a>`;
+
     await this.mailService.sendMail({
       from: '"Support" <samueloseh007@gmail.com>',
       to: forgotPasswordDto.email,
       subject: 'Password Reset',
-      html: '<a>Click here to reset your password</a>',
+      html: resetLinkHtml,
     });
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    const { password, confirmPassword, token } = resetPasswordDto;
+
+    const decodedToken = this.jwtService.verify(token);
+
+    if (!decodedToken) {
+      throw new UnauthorizedException('Invalid token');
+    }
+
+    if (password !== confirmPassword) {
+      throw new UnauthorizedException('Password does not match');
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    await this.userModel.updateOne({ password: passwordHash });
   }
 }
