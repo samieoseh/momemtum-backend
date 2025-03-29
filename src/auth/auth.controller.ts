@@ -7,7 +7,7 @@ import { ResetPasswordDto } from './dto/reset-password-dto';
 import { CompanyRegistrationDto } from './dto/company-registration-dto';
 import { TenantService } from '../tenant/tenant.service';
 import { Connection } from 'mongoose';
-import { Sign } from 'crypto';
+import { Request } from 'express';
 
 @Controller('auth')
 export class AuthController {

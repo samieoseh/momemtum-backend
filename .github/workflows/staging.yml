@@ -37,6 +37,7 @@ jobs:
           EMAIL_USERNAME: ${{ secrets.EMAIL_USERNAME }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           FRONTEND_DOMAIN: ${{ secrets.FRONTEND_DOMAIN }}
+          COMPANY_URI: ${{ secrets.COMPANY_URI }}
 
   deploy:
     name: Deploy
