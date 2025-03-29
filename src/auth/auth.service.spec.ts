@@ -59,7 +59,7 @@ describe('AuthService (Tenant-Aware)', () => {
   };
 
   const mockTenantService = {
-    findByEmail: jest.fn().mockResolvedValue({ _id: 'tenant-id' }),
+    findByCompanyName: jest.fn().mockResolvedValue({ _id: 'tenant-id' }),
     createTenant: jest.fn().mockResolvedValue({
       _id: 'tenant-id',
       companyName: 'Test Company',

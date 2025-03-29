@@ -20,7 +20,7 @@ export class TenantService {
     return newTenant.save();
   }
 
-  async findByEmail(email: string) {
-    return await this.tenantModel.findOne({ email });
+  async findByCompanyName(companyName: string) {
+    return await this.tenantModel.findOne({ companyName: companyName });
   }
 }

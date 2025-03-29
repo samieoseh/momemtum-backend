@@ -39,7 +39,12 @@ export class AuthService {
   async registerCompany(companyRegistrationDto: CompanyRegistrationDto) {
     try {
       const company = await this.companyModel.create(companyRegistrationDto);
-      const tenant = await this.tenantService.findByEmail(company.email);
+      const tenant = await this.tenantService.findByCompanyName(company.email);
+
+      if (!tenant) {
+        throw new NotFoundException('Tenant not found');
+      }
+
       return { _id: company._id.toString(), tenantId: tenant?._id.toString() };
     } catch (error) {
       if (error.code === 11000) {
