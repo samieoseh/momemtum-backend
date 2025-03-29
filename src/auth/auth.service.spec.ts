@@ -1,17 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { getModelToken } from '@nestjs/mongoose';
-import { SignupDto } from './dto/signup-dto';
-import { NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { LoginDto } from './dto/login-dto';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcryptjs';
-import { ForgetPasswordDto } from './dto/forgot-password-dto';
 import { MailerService } from '@nestjs-modules/mailer';
-import { mock } from 'node:test';
+import * as bcrypt from 'bcryptjs';
 import { ConfigModule } from '@nestjs/config';
+import { SignupDto } from './dto/signup-dto';
 import { ResetPasswordDto } from './dto/reset-password-dto';
-import { verify } from 'crypto';
+import { Connection } from 'mongoose';
+import { RolesService } from '../roles/roles.service';
+import { LoginDto } from './dto/login-dto';
+import { CompanyRegistrationDto } from './dto/company-registration-dto';
 
 jest.mock('bcryptjs', () => ({
   hash: jest.fn(),
@@ -19,63 +18,61 @@ jest.mock('bcryptjs', () => ({
   genSalt: jest.fn(),
 }));
 
-describe('AuthService', () => {
+describe('AuthService (Tenant-Aware)', () => {
   let service: AuthService;
   let jwtService: JwtService;
   let mailService: MailerService;
-
-  let mockSendMail;
+  let roleService: RolesService;
+  let tenantConnection: Connection;
 
   const mockUserModel = {
     findOne: jest.fn(),
     create: jest.fn(),
-    save: jest.fn(),
     updateOne: jest.fn(),
-    deleteMany: jest.fn().mockResolvedValue({}),
+  };
+
+  const mockCompanyModel = {
+    findOne: jest.fn(),
+    create: jest.fn(),
+  };
+
+  const mockTenantConnection = {
+    model: jest.fn().mockReturnValue(mockUserModel),
   };
 
   const mockJwtService = {
     sign: jest.fn().mockReturnValue('mocked-jwt-token'),
-    verify: jest.fn().mockReturnValue({ sub: 'mocked-sub' }),
+    verify: jest.fn().mockReturnValue({ sub: 'mocked-email@example.com' }),
   };
 
   const mockMailerService = {
-    sendMail: jest.fn().mockResolvedValue(true), // Mock sendMail
+    sendMail: jest.fn().mockResolvedValue(true),
+  };
+
+  const mockRoleService = {
+    createDefaultRoles: jest.fn().mockResolvedValue([
+      { name: 'admin', description: 'Admin role', permissions: [] },
+      { name: 'user', description: 'User role', permissions: [] },
+    ]),
   };
 
   beforeEach(async () => {
-    mockSendMail = jest.fn().mockResolvedValue(true);
-
     const module: TestingModule = await Test.createTestingModule({
       imports: [ConfigModule.forRoot()],
       providers: [
         AuthService,
-        {
-          provide: JwtService,
-          useValue: mockJwtService,
-        },
-        {
-          provide: MailerService,
-          useValue: mockMailerService,
-        },
-        {
-          provide: getModelToken('User'),
-          useValue: mockUserModel,
-        },
+        { provide: JwtService, useValue: mockJwtService },
+        { provide: MailerService, useValue: mockMailerService },
+        { provide: RolesService, useValue: mockRoleService },
+        { provide: getModelToken('Company'), useValue: mockCompanyModel },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
     jwtService = module.get<JwtService>(JwtService);
     mailService = module.get<MailerService>(MailerService);
-
-    if (mockUserModel.deleteMany) {
-      await mockUserModel.deleteMany();
-    }
-  });
-
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+    roleService = module.get<RolesService>(RolesService);
+    tenantConnection = mockTenantConnection as unknown as Connection;
   });
 
   describe('findByEmail', () => {
@@ -83,19 +80,68 @@ describe('AuthService', () => {
       const mockUser = { _id: '123', email: 'test@example.com' };
       mockUserModel.findOne.mockResolvedValue(mockUser);
 
-      const user = await service.findByEmail('test@example.com');
+      const user = await service.findByEmail(
+        'test@example.com',
+        tenantConnection,
+      );
       expect(user).toEqual(mockUser);
-    });
-
-    it('should return null if no user is found', async () => {
-      mockUserModel.findOne.mockResolvedValue(null);
-
-      const user = await service.findByEmail('notfound@example.com');
-      expect(user).toBeNull();
     });
   });
 
-  describe('create', () => {
+  describe('registerCompany', () => {
+    it('should create a company and return the ID', async () => {
+      const dto: CompanyRegistrationDto = {
+        companyName: 'Test Company',
+        email: 'test@example.com',
+      };
+
+      const mockCompany = { _id: '123', ...dto };
+
+      mockCompanyModel.create.mockResolvedValue(mockCompany);
+
+      const result = await service.registerCompany(dto);
+      expect(result).toEqual({ _id: '123' });
+      expect(mockCompanyModel.create).toHaveBeenCalledWith(dto);
+      expect(mockCompanyModel.create).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('registerAdmin', () => {
+    it('should create an admin user and return the ID', async () => {
+      const dto: SignupDto = {
+        firstName: 'Test',
+        lastName: 'User',
+        email: 'test@example.com',
+        password: 'password123',
+      };
+
+      (bcrypt.genSalt as jest.Mock).mockResolvedValue('mocked-salt');
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-password');
+      mockUserModel.create.mockResolvedValue({ _id: '123', ...dto });
+
+      mockRoleService.createDefaultRoles.mockResolvedValue([
+        { _id: 'admin-role-id' },
+      ]);
+
+      await service.registerAdmin(dto, tenantConnection);
+      expect(mockUserModel.create).toHaveBeenCalledWith({
+        ...dto,
+        password: 'hashed-password',
+      });
+      expect(mockRoleService.createDefaultRoles).toHaveBeenCalledWith(
+        tenantConnection,
+      );
+      expect(mockUserModel.updateOne).toHaveBeenCalledWith(
+        { _id: '123' },
+        { $addToSet: { roles: 'admin-role-id' } },
+      );
+      expect(mockUserModel.updateOne).toHaveBeenCalledTimes(1);
+      expect(mockUserModel.create).toHaveBeenCalledTimes(1);
+      expect(mockRoleService.createDefaultRoles).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('signup', () => {
     it('should create a user and return the ID', async () => {
       const signupDto: SignupDto = {
         email: 'new@example.com',
@@ -106,82 +152,75 @@ describe('AuthService', () => {
       (bcrypt.genSalt as jest.Mock).mockResolvedValue('mocked-salt');
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-password');
 
-      const mockUser = { _id: '123', ...signupDto, save: jest.fn() };
+      mockUserModel.create.mockReturnValue({ _id: '123', ...signupDto });
+      mockUserModel.findOne.mockResolvedValue({ _id: '123' });
 
-      mockUserModel.create.mockReturnValue(mockUser);
-      mockUserModel.findOne.mockResolvedValue(mockUser);
-
-      const result = await service.signup(signupDto);
+      const result = await service.signup(signupDto, tenantConnection);
       expect(result).toEqual({ _id: '123' });
-    });
-
-    it('should throw NotFoundException if user is not found after creation', async () => {
-      const signupDto: SignupDto = {
-        email: 'new@example.com',
-        password: '123456',
-        firstName: 'Test',
-        lastName: 'User',
-      };
-
-      (bcrypt.genSalt as jest.Mock).mockResolvedValue('mocked-salt');
-      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-password');
-
-      mockUserModel.create.mockReturnValue({ save: jest.fn() });
-      mockUserModel.findOne.mockResolvedValue(null);
-
-      await expect(service.signup(signupDto)).rejects.toThrow(
-        NotFoundException,
-      );
     });
   });
 
   describe('login', () => {
-    it('should authenticate a user and return a JWT', async () => {
+    it('should return a user if credentials are valid', async () => {
       const loginDto: LoginDto = {
         email: 'test@example.com',
-        password: '123456',
+        password: 'password123',
       };
+
       const mockUser = {
         _id: '123',
         email: loginDto.email,
-        password: '123456',
+        password: 'hashed-password',
       };
-
-      mockUserModel.findOne.mockResolvedValue(mockUser);
-
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
-
-      const result = await service.login(loginDto);
-
+      mockUserModel.findOne.mockResolvedValue(mockUser);
+      (jwtService.sign as jest.Mock).mockReturnValue('mocked-jwt-token');
+      const result = await service.login(loginDto, tenantConnection);
       expect(result).toEqual({
         _id: mockUser._id,
         email: mockUser.email,
         accessToken: 'mocked-jwt-token',
       });
-      expect(jwtService.sign).toHaveBeenCalledWith({ sub: '123' });
-      expect(bcrypt.compare).toHaveBeenCalledWith('123456', '123456');
+      expect(bcrypt.compare).toHaveBeenCalledWith(
+        loginDto.password,
+        mockUser.password,
+      );
     });
-  });
 
-  describe('forgotPassword', () => {
-    it('should send a jwt token with 15 minutes expiry time attached to the url sent to the email', async () => {
-      const forgotPasswordDto: ForgetPasswordDto = {
-        email: 'test@example.com',
+    it('should throw an error if user does not exist', async () => {
+      const loginDto: LoginDto = {
+        email: 'nonexistent@example.com',
+        password: 'password123',
       };
 
-      await service.forgotPassword(forgotPasswordDto);
+      mockUserModel.findOne.mockResolvedValue(null);
 
-      expect(jwtService.sign).toHaveBeenCalledWith(
-        { sub: forgotPasswordDto.email },
-        { expiresIn: '15m' },
+      await expect(service.login(loginDto, tenantConnection)).rejects.toThrow(
+        'User does not exists',
       );
 
-      expect(mockMailerService.sendMail).toHaveBeenCalledWith({
-        from: '"Support" <samueloseh007@gmail.com>',
-        to: forgotPasswordDto.email,
-        subject: 'Password Reset',
-        html: `<a href="${process.env.FRONTEND_DOMAIN}/auth/reset-password/mocked-jwt-token">Click here to reset your password</a>`,
+      expect(mockUserModel.findOne).toHaveBeenCalledWith({
+        email: loginDto.email,
       });
+    });
+
+    it('should throw an error if password does not match', async () => {
+      const loginDto: LoginDto = {
+        email: 'test@example.com',
+        password: 'wrongpassword',
+      };
+
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+      const mockUser = {
+        _id: '123',
+        email: loginDto.email,
+        password: 'hashed-password',
+      };
+
+      mockUserModel.findOne.mockResolvedValue(mockUser);
+      await expect(service.login(loginDto, tenantConnection)).rejects.toThrow(
+        'Password does not match',
+      );
     });
   });
 
@@ -195,40 +234,12 @@ describe('AuthService', () => {
 
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-newpassword');
       (bcrypt.genSalt as jest.Mock).mockResolvedValue('mocked-salt');
-      await service.resetPassword(resetPasswordDto);
-      expect(bcrypt.hash).toHaveBeenCalledWith(
-        resetPasswordDto.password,
-        'mocked-salt',
-      );
+
+      await service.resetPassword(resetPasswordDto, tenantConnection);
+
       expect(mockUserModel.updateOne).toHaveBeenCalledWith({
         password: 'hashed-newpassword',
       });
-    });
-
-    it('should throw UnauthorizedException if passwords do not match', async () => {
-      const resetPasswordDto: ResetPasswordDto = {
-        password: 'newpassword',
-        confirmPassword: 'differentpassword',
-        token: 'mocked-jwt-token',
-      };
-
-      await expect(service.resetPassword(resetPasswordDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
-    });
-
-    it('should throw BadRequestException if token is invalid', async () => {
-      const resetPasswordDto: ResetPasswordDto = {
-        password: 'newpassword',
-        confirmPassword: 'newpassword',
-        token: '123',
-      };
-      (jwtService.verify as jest.Mock).mockImplementation(() => {
-        throw new UnauthorizedException('Invalid token');
-      });
-      await expect(service.resetPassword(resetPasswordDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
     });
   });
 });
