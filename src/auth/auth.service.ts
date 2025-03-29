@@ -19,6 +19,7 @@ import { CompanyRegistrationDto } from './dto/company-registration-dto';
 import { Company } from './domain/company.schema';
 import { Connection } from 'mongoose';
 import { RolesService } from '../roles/roles.service';
+import { TenantService } from '../tenant/tenant.service';
 
 @Injectable()
 export class AuthService {
@@ -27,6 +28,7 @@ export class AuthService {
     private jwtService: JwtService,
     private readonly mailService: MailerService,
     private readonly roleService: RolesService,
+    private readonly tenantService: TenantService,
   ) {}
 
   async findByEmail(email: string, tenantConnection: Connection) {
@@ -37,7 +39,15 @@ export class AuthService {
   async registerCompany(companyRegistrationDto: CompanyRegistrationDto) {
     try {
       const company = await this.companyModel.create(companyRegistrationDto);
-      return { _id: company._id.toString() };
+      const tenant = await this.tenantService.findByCompanyName(
+        company.companyName,
+      );
+
+      if (!tenant) {
+        throw new NotFoundException('Tenant not found');
+      }
+
+      return { _id: company._id.toString(), tenantId: tenant?._id.toString() };
     } catch (error) {
       if (error.code === 11000) {
         throw new ConflictException('Company already exists');

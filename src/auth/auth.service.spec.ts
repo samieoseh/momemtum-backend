@@ -11,6 +11,7 @@ import { Connection } from 'mongoose';
 import { RolesService } from '../roles/roles.service';
 import { LoginDto } from './dto/login-dto';
 import { CompanyRegistrationDto } from './dto/company-registration-dto';
+import { TenantService } from '../tenant/tenant.service';
 
 jest.mock('bcryptjs', () => ({
   hash: jest.fn(),
@@ -23,6 +24,7 @@ describe('AuthService (Tenant-Aware)', () => {
   let jwtService: JwtService;
   let mailService: MailerService;
   let roleService: RolesService;
+  let tenantService: TenantService;
   let tenantConnection: Connection;
 
   const mockUserModel = {
@@ -56,6 +58,15 @@ describe('AuthService (Tenant-Aware)', () => {
     ]),
   };
 
+  const mockTenantService = {
+    findByCompanyName: jest.fn().mockResolvedValue({ _id: 'tenant-id' }),
+    createTenant: jest.fn().mockResolvedValue({
+      _id: 'tenant-id',
+      companyName: 'Test Company',
+      databaseUri: 'mongodb://localhost/test_db',
+    }),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [ConfigModule.forRoot()],
@@ -64,6 +75,7 @@ describe('AuthService (Tenant-Aware)', () => {
         { provide: JwtService, useValue: mockJwtService },
         { provide: MailerService, useValue: mockMailerService },
         { provide: RolesService, useValue: mockRoleService },
+        { provide: TenantService, useValue: mockTenantService },
         { provide: getModelToken('Company'), useValue: mockCompanyModel },
       ],
     }).compile();
@@ -72,6 +84,7 @@ describe('AuthService (Tenant-Aware)', () => {
     jwtService = module.get<JwtService>(JwtService);
     mailService = module.get<MailerService>(MailerService);
     roleService = module.get<RolesService>(RolesService);
+    tenantService = module.get<TenantService>(TenantService);
     tenantConnection = mockTenantConnection as unknown as Connection;
   });
 
@@ -100,7 +113,7 @@ describe('AuthService (Tenant-Aware)', () => {
       mockCompanyModel.create.mockResolvedValue(mockCompany);
 
       const result = await service.registerCompany(dto);
-      expect(result).toEqual({ _id: '123' });
+      expect(result).toEqual({ _id: '123', tenantId: 'tenant-id' });
       expect(mockCompanyModel.create).toHaveBeenCalledWith(dto);
       expect(mockCompanyModel.create).toHaveBeenCalledTimes(1);
     });
