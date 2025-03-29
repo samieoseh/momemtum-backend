@@ -16,9 +16,7 @@ describe('AppController', () => {
 
   describe('root', () => {
     it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe(
-        'Hello World ----- New changes made!',
-      );
+      expect(appController.getHello()).toBe('Welcome to momentum API');
     });
   });
 });

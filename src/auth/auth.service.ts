@@ -1,4 +1,6 @@
 import {
+  BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -6,44 +8,106 @@ import {
 import { SignupDto } from './dto/signup-dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { User } from './domain/user.schema';
+import { User, UserSchema } from './domain/user.schema';
 import * as bcrypt from 'bcryptjs';
 import { LoginDto } from './dto/login-dto';
 import { JwtService } from '@nestjs/jwt';
+import { ForgetPasswordDto } from './dto/forgot-password-dto';
+import { MailerService } from '@nestjs-modules/mailer';
+import { ResetPasswordDto } from './dto/reset-password-dto';
+import { CompanyRegistrationDto } from './dto/company-registration-dto';
+import { Company } from './domain/company.schema';
+import { Connection } from 'mongoose';
+import { RolesService } from '../roles/roles.service';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectModel(User.name) private userModel: Model<User>,
+    @InjectModel(Company.name) private companyModel: Model<Company>,
     private jwtService: JwtService,
+    private readonly mailService: MailerService,
+    private readonly roleService: RolesService,
   ) {}
 
-  async findByEmail(email: string) {
-    return await this.userModel.findOne({ email });
+  async findByEmail(email: string, tenantConnection: Connection) {
+    const userModel = tenantConnection.model('User', UserSchema);
+    return await userModel.findOne({ email });
   }
 
-  async signup(signupDto: SignupDto): Promise<{ _id: string }> {
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(signupDto.password, salt);
-
-    await this.userModel.create({ ...signupDto, password: passwordHash });
-
-    // find the user by email
-    const user = await this.findByEmail(signupDto.email);
-
-    if (!user) {
-      throw new NotFoundException('User not found');
+  async registerCompany(companyRegistrationDto: CompanyRegistrationDto) {
+    try {
+      const company = await this.companyModel.create(companyRegistrationDto);
+      return { _id: company._id.toString() };
+    } catch (error) {
+      if (error.code === 11000) {
+        throw new ConflictException('Company already exists');
+      }
+      throw error;
     }
-
-    return { _id: user?._id.toString() };
   }
 
-  async login(loginDto: LoginDto): Promise<{
-    _id: string;
-    email: string;
-    accessToken: string;
-  }> {
-    const userAccount = await this.findByEmail(loginDto.email);
+  async registerAdmin(signupDto: SignupDto, tenantConnection: Connection) {
+    try {
+      const userModel = tenantConnection.model('User', UserSchema);
+
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(signupDto.password, salt);
+
+      const user = await userModel.create({
+        ...signupDto,
+        password: passwordHash,
+      });
+
+      // create the default roles for the database
+      const roles = await this.roleService.createDefaultRoles(tenantConnection);
+
+      // assign the admin role to the user
+      await userModel.updateOne(
+        { _id: user._id },
+        { $addToSet: { roles: roles[0]._id } },
+      );
+
+      return { _id: user._id.toString() };
+    } catch (error) {
+      if (error.code === 11000) {
+        throw new ConflictException('User already exists');
+      }
+      throw error;
+    }
+  }
+  async signup(signupDto: SignupDto, tenantConnection: Connection) {
+    try {
+      const userModel = tenantConnection.model('User', UserSchema);
+
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(signupDto.password, salt);
+
+      await userModel.create({ ...signupDto, password: passwordHash });
+
+      // get the saved user
+      const savedUser = await this.findByEmail(
+        signupDto.email,
+        tenantConnection,
+      );
+      if (!savedUser) {
+        throw new NotFoundException('User not found');
+      }
+
+      return { _id: savedUser?._id.toString() };
+    } catch (error) {
+      if (error.code === 11000) {
+        throw new ConflictException('User already exists');
+      }
+      throw error;
+    }
+  }
+
+  async login(loginDto: LoginDto, tenantConnection: Connection) {
+    const userModel = tenantConnection.model('User', UserSchema);
+    const userAccount = await this.findByEmail(
+      loginDto.email,
+      tenantConnection,
+    );
 
     if (!userAccount) {
       throw new UnauthorizedException('User does not exists');
@@ -66,5 +130,68 @@ export class AuthService {
       email: userAccount?.email,
       accessToken,
     };
+  }
+
+  async forgotPassword(
+    forgotPasswordDto: ForgetPasswordDto,
+    tenantConnection: Connection,
+  ) {
+    const userModel = tenantConnection.model('User', UserSchema);
+    const user = await this.findByEmail(
+      forgotPasswordDto.email,
+      tenantConnection,
+    );
+
+    if (!user) {
+      throw new NotFoundException('User does not exist');
+    }
+
+    const token = this.jwtService.sign(
+      { sub: forgotPasswordDto.email },
+      { expiresIn: '15m' },
+    );
+    const resetLinkHtml = `<a href="${process.env.FRONTEND_DOMAIN}/auth/reset-password/${token}">Click here to reset your password</a>`;
+
+    await this.mailService.sendMail({
+      from: '"Support" <samueloseh007@gmail.com>',
+      to: forgotPasswordDto.email,
+      subject: 'Password Reset',
+      html: resetLinkHtml,
+    });
+  }
+
+  async resetPassword(
+    resetPasswordDto: ResetPasswordDto,
+    tenantConnection: Connection,
+  ) {
+    const userModel = tenantConnection.model('User', UserSchema);
+    const { password, confirmPassword, token } = resetPasswordDto;
+
+    try {
+      const decodedToken = this.jwtService.verify(token);
+      if (!decodedToken) {
+        throw new UnauthorizedException('Invalid token');
+      }
+
+      if (password !== confirmPassword) {
+        console.log('Password does not match');
+        throw new UnauthorizedException('Password does not match');
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(password, salt);
+
+      await userModel.updateOne({ password: passwordHash });
+    } catch (error) {
+      if (error.name === 'JsonWebTokenError') {
+        throw new BadRequestException('Invalid token');
+      }
+
+      if (error.name === 'TokenExpiredError') {
+        throw new BadRequestException('Token expired');
+      }
+
+      throw error;
+    }
   }
 }

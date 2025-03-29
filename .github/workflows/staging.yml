@@ -33,6 +33,10 @@ jobs:
         env:
           DATABASE_URI: ${{ secrets.DATABASE_URI }}
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
+          EMAIL_USERNAME: ${{ secrets.EMAIL_USERNAME }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          FRONTEND_DOMAIN: ${{ secrets.FRONTEND_DOMAIN }}
 
   deploy:
     name: Deploy
@@ -43,5 +47,5 @@ jobs:
       - name: Deploy to Render
         uses: johnbeynon/render-deploy-action@v0.0.8
         with:
-          service-id: ${{ secrets.SERVICE_ID }}
+          service-id: ${{ secrets.STAGING_SERVICE_ID }}
           api-key: ${{ secrets.RENDER_API_KEY }}
