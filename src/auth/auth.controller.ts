@@ -23,10 +23,10 @@ export class AuthController {
     // create user database
     await this.tenantService.createTenant(companyRegistrationDto.companyName);
 
-    const newUser = await this.authService.registerCompany(
+    const newCompany = await this.authService.registerCompany(
       companyRegistrationDto,
     );
-    return { user: newUser, message: 'Company created successfully' };
+    return { company: newCompany, message: 'Company created successfully' };
   }
 
   @Post('/register-admin')

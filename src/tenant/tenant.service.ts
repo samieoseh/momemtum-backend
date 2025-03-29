@@ -17,7 +17,10 @@ export class TenantService {
     }
 
     const newTenant = new this.tenantModel({ companyName, databaseUri });
-    console.log({ newTenant });
     return newTenant.save();
+  }
+
+  async findByEmail(email: string) {
+    return await this.tenantModel.findOne({ email });
   }
 }
