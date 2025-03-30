@@ -8,6 +8,9 @@ export class Company {
   @Prop({ required: true, trim: true })
   companyName: string;
 
+  @Prop({ trim: true, unique: true })
+  subdomain: string;
+
   @Prop({ required: true, unique: true })
   email: string;
 

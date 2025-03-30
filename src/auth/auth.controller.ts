@@ -1,4 +1,12 @@
-import { Body, Controller, HttpCode, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Req,
+} from '@nestjs/common';
 import { SignupDto } from './dto/signup-dto';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login-dto';
@@ -15,6 +23,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly tenantService: TenantService,
   ) {}
+
   @Post('/register-company')
   @HttpCode(201)
   async registerCompany(
@@ -101,5 +110,13 @@ export class AuthController {
     return {
       message: 'Password has been reset successfully',
     };
+  }
+
+  @Get('/get-tenant-id/:subdomain')
+  @HttpCode(200)
+  async checkSubdomain(@Param('subdomain') subdomain: string) {
+    const tenantId = await this.tenantService.getTenantId(subdomain);
+
+    return { exists: true, tenantId };
   }
 }

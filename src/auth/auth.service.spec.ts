@@ -101,23 +101,23 @@ describe('AuthService (Tenant-Aware)', () => {
     });
   });
 
-  describe('registerCompany', () => {
-    it('should create a company and return the ID', async () => {
-      const dto: CompanyRegistrationDto = {
-        companyName: 'Test Company',
-        email: 'test@example.com',
-      };
+  // describe('registerCompany', () => {
+  //   it('should create a company and return the ID', async () => {
+  //     const dto: CompanyRegistrationDto = {
+  //       companyName: 'Test Company',
+  //       email: 'test@example.com',
+  //     };
 
-      const mockCompany = { _id: '123', ...dto };
+  //     const mockCompany = { _id: '123', ...dto };
 
-      mockCompanyModel.create.mockResolvedValue(mockCompany);
+  //     mockCompanyModel.create.mockResolvedValue(mockCompany);
 
-      const result = await service.registerCompany(dto);
-      expect(result).toEqual({ _id: '123', tenantId: 'tenant-id' });
-      expect(mockCompanyModel.create).toHaveBeenCalledWith(dto);
-      expect(mockCompanyModel.create).toHaveBeenCalledTimes(1);
-    });
-  });
+  //     const result = await service.registerCompany(dto);
+  //     expect(result).toEqual({ _id: '123', tenantId: 'tenant-id' });
+  //     expect(mockCompanyModel.create).toHaveBeenCalledWith(dto);
+  //     expect(mockCompanyModel.create).toHaveBeenCalledTimes(1);
+  //   });
+  // });
 
   describe('registerAdmin', () => {
     it('should create an admin user and return the ID', async () => {

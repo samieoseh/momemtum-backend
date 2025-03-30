@@ -38,7 +38,14 @@ export class AuthService {
 
   async registerCompany(companyRegistrationDto: CompanyRegistrationDto) {
     try {
-      const company = await this.companyModel.create(companyRegistrationDto);
+      const subdomain = await this.tenantService.createSubdomain(
+        companyRegistrationDto.companyName,
+      );
+      const company = await this.companyModel.create({
+        ...companyRegistrationDto,
+        subdomain,
+      });
+
       const tenant = await this.tenantService.findByCompanyName(
         company.companyName,
       );
@@ -47,7 +54,11 @@ export class AuthService {
         throw new NotFoundException('Tenant not found');
       }
 
-      return { _id: company._id.toString(), tenantId: tenant?._id.toString() };
+      return {
+        _id: company._id.toString(),
+        tenantId: tenant?._id.toString(),
+        subdomain: company.subdomain,
+      };
     } catch (error) {
       if (error.code === 11000) {
         throw new ConflictException('Company already exists');
@@ -91,6 +102,7 @@ export class AuthService {
 
       const salt = await bcrypt.genSalt(10);
       const passwordHash = await bcrypt.hash(signupDto.password, salt);
+      console.log({ signupDto });
 
       await userModel.create({ ...signupDto, password: passwordHash });
 
