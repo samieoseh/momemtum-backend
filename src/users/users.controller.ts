@@ -2,6 +2,7 @@ import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../jwt/jwt.auth.guard';
 import { Connection } from 'mongoose';
+import { Request } from 'express';
 
 // user controller
 @Controller('users')
