@@ -41,16 +41,19 @@ export class AuthService {
       const subdomain = await this.tenantService.createSubdomain(
         hospitalRegistrationDto.name,
       );
-      const hospital = await this.hospitalModel.create({
-        ...hospitalRegistrationDto,
-        subdomain,
-      });
-
-      const tenant = await this.tenantService.findByHospitalName(hospital.name);
+      const tenant = await this.tenantService.findByHospitalName(
+        hospitalRegistrationDto.name,
+      );
 
       if (!tenant) {
         throw new NotFoundException('Tenant not found');
       }
+
+      const hospital = await this.hospitalModel.create({
+        ...hospitalRegistrationDto,
+        subdomain,
+        tenantId: tenant._id,
+      });
 
       return {
         _id: hospital._id.toString(),

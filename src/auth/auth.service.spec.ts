@@ -118,6 +118,7 @@ describe('AuthService (Tenant-Aware)', () => {
       expect(mockHospitalModel.create).toHaveBeenCalledWith({
         ...dto,
         subdomain: 'test-domain',
+        tenantId: 'tenant-id',
       });
       expect(mockHospitalModel.create).toHaveBeenCalledTimes(1);
     });
