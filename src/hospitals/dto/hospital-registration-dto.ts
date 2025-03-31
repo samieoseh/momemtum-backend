@@ -1,10 +1,9 @@
 import { IsNotEmpty, IsString } from 'class-validator';
-import { SignupDto } from './signup-dto';
 
-export class CompanyRegistrationDto {
+export class HospitalRegistrationDto {
   @IsNotEmpty()
   @IsString()
-  readonly companyName: string;
+  readonly name: string;
 
   @IsNotEmpty()
   @IsString()

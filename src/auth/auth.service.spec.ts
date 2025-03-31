@@ -10,7 +10,7 @@ import { ResetPasswordDto } from './dto/reset-password-dto';
 import { Connection } from 'mongoose';
 import { RolesService } from '../roles/roles.service';
 import { LoginDto } from './dto/login-dto';
-import { CompanyRegistrationDto } from './dto/company-registration-dto';
+import { HospitalRegistrationDto } from '../hospitals/dto/hospital-registration-dto';
 import { TenantService } from '../tenant/tenant.service';
 
 jest.mock('bcryptjs', () => ({
@@ -33,7 +33,7 @@ describe('AuthService (Tenant-Aware)', () => {
     updateOne: jest.fn(),
   };
 
-  const mockCompanyModel = {
+  const mockHospitalModel = {
     findOne: jest.fn(),
     create: jest.fn(),
   };
@@ -59,10 +59,10 @@ describe('AuthService (Tenant-Aware)', () => {
   };
 
   const mockTenantService = {
-    findByCompanyName: jest.fn().mockResolvedValue({ _id: 'tenant-id' }),
+    findByHospitalName: jest.fn().mockResolvedValue({ _id: 'tenant-id' }),
     createTenant: jest.fn().mockResolvedValue({
       _id: 'tenant-id',
-      companyName: 'Test Company',
+      hospitalName: 'Test Hospital',
       databaseUri: 'mongodb://localhost/test_db',
     }),
     createSubdomain: jest.fn().mockResolvedValue('test-domain'),
@@ -77,7 +77,7 @@ describe('AuthService (Tenant-Aware)', () => {
         { provide: MailerService, useValue: mockMailerService },
         { provide: RolesService, useValue: mockRoleService },
         { provide: TenantService, useValue: mockTenantService },
-        { provide: getModelToken('Company'), useValue: mockCompanyModel },
+        { provide: getModelToken('Hospital'), useValue: mockHospitalModel },
       ],
     }).compile();
 
@@ -102,24 +102,24 @@ describe('AuthService (Tenant-Aware)', () => {
     });
   });
 
-  describe('registerCompany', () => {
-    it('should create a company and return the ID', async () => {
-      const dto: CompanyRegistrationDto = {
-        companyName: 'Test Company',
+  describe('registerHospital', () => {
+    it('should create a hospital and return the ID', async () => {
+      const dto: HospitalRegistrationDto = {
+        name: 'Test Hospital',
         email: 'test@example.com',
       };
 
-      const mockCompany = { _id: '123', ...dto };
+      const mockHospital = { _id: '123', ...dto };
 
-      mockCompanyModel.create.mockResolvedValue(mockCompany);
+      mockHospitalModel.create.mockResolvedValue(mockHospital);
 
-      const result = await service.registerCompany(dto);
+      const result = await service.registerHospital(dto);
       expect(result).toEqual({ _id: '123', tenantId: 'tenant-id' });
-      expect(mockCompanyModel.create).toHaveBeenCalledWith({
+      expect(mockHospitalModel.create).toHaveBeenCalledWith({
         ...dto,
         subdomain: 'test-domain',
       });
-      expect(mockCompanyModel.create).toHaveBeenCalledTimes(1);
+      expect(mockHospitalModel.create).toHaveBeenCalledTimes(1);
     });
   });
 

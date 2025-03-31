@@ -6,7 +6,7 @@ import { SignupDto } from './dto/signup-dto';
 import { LoginDto } from './dto/login-dto';
 import { ForgetPasswordDto } from './dto/forgot-password-dto';
 import { ResetPasswordDto } from './dto/reset-password-dto';
-import { CompanyRegistrationDto } from './dto/company-registration-dto';
+import { HospitalRegistrationDto } from '../hospitals/dto/hospital-registration-dto';
 import { Connection } from 'mongoose';
 
 describe('AuthController', () => {
@@ -19,7 +19,7 @@ describe('AuthController', () => {
   };
 
   const mockAuthService = {
-    registerCompany: jest.fn(),
+    registerHospital: jest.fn(),
     signup: jest.fn(),
     login: jest.fn(),
     forgotPassword: jest.fn(),
@@ -43,24 +43,24 @@ describe('AuthController', () => {
     tenantService = module.get<TenantService>(TenantService);
   });
 
-  describe('registerCompany', () => {
-    it('should call TenantService.createTenant and AuthService.registerCompany', async () => {
-      const dto: CompanyRegistrationDto = {
+  describe('registerHospital', () => {
+    it('should call TenantService.createTenant and AuthService.registerHospital', async () => {
+      const dto: HospitalRegistrationDto = {
         email: 'test@example.com',
-        companyName: 'Test Company',
+        name: 'Test Hospital',
       };
 
       mockTenantService.createTenant.mockResolvedValue(undefined);
-      mockAuthService.registerCompany.mockResolvedValue({
+      mockAuthService.registerHospital.mockResolvedValue({
         id: 1,
         email: dto.email,
-        companyName: dto.companyName,
+        name: dto.name,
       });
 
-      await controller.registerCompany(dto);
+      await controller.registerHospital(dto);
 
-      expect(tenantService.createTenant).toHaveBeenCalledWith(dto.companyName);
-      expect(authService.registerCompany).toHaveBeenCalledWith(dto);
+      expect(tenantService.createTenant).toHaveBeenCalledWith(dto.name);
+      expect(authService.registerHospital).toHaveBeenCalledWith(dto);
     });
   });
 
