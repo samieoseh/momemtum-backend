@@ -114,7 +114,7 @@ export class AuthController {
 
   @Get('/get-tenant-id/:subdomain')
   @HttpCode(200)
-  async checkSubdomain(@Param('subdomain') subdomain: string) {
+  async getTenantId(@Param('subdomain') subdomain: string) {
     const tenantId = await this.tenantService.getTenantId(subdomain);
 
     return { exists: true, tenantId };

@@ -15,6 +15,7 @@ describe('AuthController', () => {
   let tenantService: TenantService;
   const mockTenantService = {
     createTenant: jest.fn(),
+    getTenantId: jest.fn(),
   };
 
   const mockAuthService = {
@@ -189,6 +190,20 @@ describe('AuthController', () => {
         dto,
         mockTenantConnection,
       );
+    });
+  });
+
+  describe('getTenantId', () => {
+    it('should call TenantService.getTenantId with the subdomain', async () => {
+      const subdomain = 'test-subdomain';
+
+      mockTenantService.getTenantId.mockResolvedValue({
+        tenantId: '123',
+      });
+
+      await controller.getTenantId(subdomain);
+
+      expect(tenantService.getTenantId).toHaveBeenCalledWith(subdomain);
     });
   });
 });
