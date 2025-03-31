@@ -13,6 +13,7 @@ import { TenantModule } from './tenant/tenant.module';
 import { Tenant, TenantSchema } from './tenant/domain/tenant.schema';
 import { TenantMiddleware } from './tenant/middlewares/tenant.middleware';
 import { TenantDatabaseService } from './tenant/tenant.database.service';
+import { HospitalsModule } from './hospitals/hospitals.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { TenantDatabaseService } from './tenant/tenant.database.service';
     AuthModule,
     RolesModule,
     TenantModule,
+    HospitalsModule,
   ],
   controllers: [AppController],
   providers: [AppService, TenantDatabaseService],
@@ -45,7 +47,12 @@ export class AppModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(TenantMiddleware)
-      .exclude({ path: 'auth/register-company', method: RequestMethod.POST })
+      .exclude({ path: 'auth/register-hospital', method: RequestMethod.POST })
+      .exclude({ path: 'hospitals/*path', method: RequestMethod.ALL })
+      .exclude({
+        path: 'auth/get-tenant-id/:subdomain',
+        method: RequestMethod.GET,
+      })
       .forRoutes({ path: '*', method: RequestMethod.ALL });
   }
 }

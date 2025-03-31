@@ -8,15 +8,15 @@ import {
 import { SignupDto } from './dto/signup-dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { User, UserSchema } from './domain/user.schema';
+import { User, UserSchema } from '../users/domain/user.schema';
 import * as bcrypt from 'bcryptjs';
 import { LoginDto } from './dto/login-dto';
 import { JwtService } from '@nestjs/jwt';
 import { ForgetPasswordDto } from './dto/forgot-password-dto';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ResetPasswordDto } from './dto/reset-password-dto';
-import { CompanyRegistrationDto } from './dto/company-registration-dto';
-import { Company } from './domain/company.schema';
+import { HospitalRegistrationDto } from '../hospitals/dto/hospital-registration-dto';
+import { Hospital } from '../hospitals/domain/hospital.schema';
 import { Connection } from 'mongoose';
 import { RolesService } from '../roles/roles.service';
 import { TenantService } from '../tenant/tenant.service';
@@ -24,7 +24,7 @@ import { TenantService } from '../tenant/tenant.service';
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectModel(Company.name) private companyModel: Model<Company>,
+    @InjectModel(Hospital.name) private hospitalModel: Model<Hospital>,
     private jwtService: JwtService,
     private readonly mailService: MailerService,
     private readonly roleService: RolesService,
@@ -36,21 +36,31 @@ export class AuthService {
     return await userModel.findOne({ email });
   }
 
-  async registerCompany(companyRegistrationDto: CompanyRegistrationDto) {
+  async registerHospital(
+    hospitalRegistrationDto: HospitalRegistrationDto,
+    subdomain: string,
+  ) {
     try {
-      const company = await this.companyModel.create(companyRegistrationDto);
-      const tenant = await this.tenantService.findByCompanyName(
-        company.companyName,
-      );
+      const tenant = await this.tenantService.findBySubdomain(subdomain);
 
       if (!tenant) {
         throw new NotFoundException('Tenant not found');
       }
 
-      return { _id: company._id.toString(), tenantId: tenant?._id.toString() };
+      const hospital = await this.hospitalModel.create({
+        ...hospitalRegistrationDto,
+        subdomain,
+        tenantId: tenant._id,
+      });
+
+      return {
+        _id: hospital._id.toString(),
+        tenantId: tenant?._id.toString(),
+        subdomain: hospital.subdomain,
+      };
     } catch (error) {
       if (error.code === 11000) {
-        throw new ConflictException('Company already exists');
+        throw new ConflictException('Hospital already exists');
       }
       throw error;
     }
@@ -91,6 +101,7 @@ export class AuthService {
 
       const salt = await bcrypt.genSalt(10);
       const passwordHash = await bcrypt.hash(signupDto.password, salt);
+      console.log({ signupDto });
 
       await userModel.create({ ...signupDto, password: passwordHash });
 

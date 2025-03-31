@@ -1,10 +1,18 @@
-import { Body, Controller, HttpCode, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Req,
+} from '@nestjs/common';
 import { SignupDto } from './dto/signup-dto';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login-dto';
 import { ForgetPasswordDto } from './dto/forgot-password-dto';
 import { ResetPasswordDto } from './dto/reset-password-dto';
-import { CompanyRegistrationDto } from './dto/company-registration-dto';
+import { HospitalRegistrationDto } from '../hospitals/dto/hospital-registration-dto';
 import { TenantService } from '../tenant/tenant.service';
 import { Connection } from 'mongoose';
 import { Request } from 'express';
@@ -15,18 +23,23 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly tenantService: TenantService,
   ) {}
-  @Post('/register-company')
+
+  @Post('/register-hospital')
   @HttpCode(201)
-  async registerCompany(
-    @Body() companyRegistrationDto: CompanyRegistrationDto,
+  async registerHospital(
+    @Body() hospitalRegistrationDto: HospitalRegistrationDto,
   ) {
     // create user database
-    await this.tenantService.createTenant(companyRegistrationDto.companyName);
-
-    const newCompany = await this.authService.registerCompany(
-      companyRegistrationDto,
+    const subdomain = await this.tenantService.createSubdomain(
+      hospitalRegistrationDto.name,
     );
-    return { company: newCompany, message: 'Company created successfully' };
+    await this.tenantService.createTenant(subdomain);
+
+    const newHospital = await this.authService.registerHospital(
+      hospitalRegistrationDto,
+      subdomain,
+    );
+    return { hospital: newHospital, message: 'Hospital created successfully' };
   }
 
   @Post('/register-admin')
@@ -101,5 +114,14 @@ export class AuthController {
     return {
       message: 'Password has been reset successfully',
     };
+  }
+
+  @Get('/get-tenant-id/:subdomain')
+  @HttpCode(200)
+  async getTenantId(@Param('subdomain') subdomain: string) {
+    const tenantId = await this.tenantService.getTenantId(subdomain);
+    console.log({ tenantId });
+
+    return { exists: true, tenantId };
   }
 }
