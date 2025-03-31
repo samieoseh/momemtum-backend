@@ -9,7 +9,7 @@ import { TenantDatabaseService } from '../tenant.database.service';
 export class TenantMiddleware implements NestMiddleware {
   constructor(
     @InjectModel(Tenant.name) private tenantModel: Model<Tenant>,
-    private tenantService: TenantDatabaseService,
+    private tenantDatabaseService: TenantDatabaseService,
   ) {}
 
   async use(req: Request, res: Response, next: NextFunction) {
@@ -23,7 +23,7 @@ export class TenantMiddleware implements NestMiddleware {
       return res.status(404).json({ message: 'Tenant not found' });
     }
 
-    req['tenantConnection'] = await this.tenantService.getConnection(
+    req['tenantConnection'] = await this.tenantDatabaseService.getConnection(
       tenant.databaseUri,
     );
     next();
