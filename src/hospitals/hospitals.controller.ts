@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -15,6 +16,7 @@ import { JwtAuthGuard } from '../jwt/jwt.auth.guard';
 @UseGuards(JwtAuthGuard)
 export class HospitalsController {
   constructor(private readonly hospitalsService: HospitalsService) {}
+
   @Patch('/:id')
   async updateHospital(
     @Param('id') id: string,
@@ -26,5 +28,21 @@ export class HospitalsController {
     );
 
     return updatedHospital;
+  }
+
+  @Delete('/:tenantId/:hospitalId')
+  async deleteHospital(
+    @Param('tenantId') tenantId: string,
+    @Param('hospitalId') hospitalId: string,
+  ) {
+    const result = await this.hospitalsService.deleteHospital(
+      tenantId,
+      hospitalId,
+    );
+    return {
+      tenantId: result.tenantId,
+      hospitalId: result.hospitalId,
+      message: 'Hospital deleted successfully',
+    };
   }
 }

@@ -9,6 +9,7 @@ describe('HospitalsController', () => {
 
   const mockHospitalService = {
     updateHospital: jest.fn(),
+    deleteHospital: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -26,7 +27,7 @@ describe('HospitalsController', () => {
   });
 
   describe('updateHospital', () => {
-    it('should call the HospitalService.updateHospital with the tenantConnection', async () => {
+    it('should call the HospitalService.updateHospital', async () => {
       const mockId = '123';
 
       const mockHospitalUpdateDto = {
@@ -42,6 +43,23 @@ describe('HospitalsController', () => {
       expect(hospitalService.updateHospital).toHaveBeenCalledWith(
         mockId,
         mockHospitalUpdateDto,
+      );
+    });
+  });
+
+  describe('deleteHospital', () => {
+    it('should call the HospitalService.deleteHospital', async () => {
+      const mockTenantId = '123';
+      const mockHospitalId = '456';
+      mockHospitalService.deleteHospital.mockResolvedValue({
+        tenantId: mockTenantId,
+        hospitalId: mockHospitalId,
+      });
+
+      controller.deleteHospital(mockTenantId, mockHospitalId);
+      expect(hospitalService.deleteHospital).toHaveBeenCalledWith(
+        mockTenantId,
+        mockHospitalId,
       );
     });
   });

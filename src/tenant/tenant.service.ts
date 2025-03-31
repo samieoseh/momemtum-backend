@@ -50,6 +50,11 @@ export class TenantService {
     return tenant._id;
   }
 
+  async findByTenantId(tenantId: string) {
+    const tenant = await this.tenantModel.findOne({ _id: tenantId });
+    return tenant;
+  }
+
   async createSubdomain(hospitalName: string): Promise<string> {
     const subdomain = hospitalName.toLowerCase().replace(/\s+/g, '-');
     return subdomain;
