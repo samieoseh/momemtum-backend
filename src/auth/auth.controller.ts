@@ -30,10 +30,14 @@ export class AuthController {
     @Body() hospitalRegistrationDto: HospitalRegistrationDto,
   ) {
     // create user database
-    await this.tenantService.createTenant(hospitalRegistrationDto.name);
+    const subdomain = await this.tenantService.createSubdomain(
+      hospitalRegistrationDto.name,
+    );
+    await this.tenantService.createTenant(subdomain);
 
     const newHospital = await this.authService.registerHospital(
       hospitalRegistrationDto,
+      subdomain,
     );
     return { hospital: newHospital, message: 'Hospital created successfully' };
   }
@@ -116,6 +120,7 @@ export class AuthController {
   @HttpCode(200)
   async getTenantId(@Param('subdomain') subdomain: string) {
     const tenantId = await this.tenantService.getTenantId(subdomain);
+    console.log({ tenantId });
 
     return { exists: true, tenantId };
   }

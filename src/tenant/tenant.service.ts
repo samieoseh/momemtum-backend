@@ -16,20 +16,20 @@ export class TenantService {
     @InjectModel(Hospital.name) private hospitalModel: Model<Hospital>,
   ) {}
 
-  async createTenant(hospitalName: string): Promise<Tenant> {
+  async createTenant(subdomain: string): Promise<Tenant> {
     let databaseUri: string;
     if (process.env.NODE_ENV === 'development') {
-      databaseUri = `${process.env.HOSPITAL_URI}/${hospitalName}_db`;
+      databaseUri = `${process.env.HOSPITAL_URI}/${subdomain}_db`;
     } else {
-      databaseUri = `${process.env.HOSPITAL_URI}/${hospitalName}_db?retryWrites=true&w=majority&appName=Cluster0`;
+      databaseUri = `${process.env.HOSPITAL_URI}/${subdomain}_db?retryWrites=true&w=majority&appName=Cluster0`;
     }
 
-    const newTenant = new this.tenantModel({ hospitalName, databaseUri });
+    const newTenant = new this.tenantModel({ subdomain, databaseUri });
     return newTenant.save();
   }
 
-  async findByHospitalName(name: string) {
-    return await this.tenantModel.findOne({ hospitalName: name });
+  async findBySubdomain(subdomain: string) {
+    return await this.tenantModel.findOne({ subdomain });
   }
 
   async getTenantId(subdomain: string) {
@@ -40,7 +40,7 @@ export class TenantService {
     }
 
     const tenant = await this.tenantModel.findOne({
-      hospitalName: hospital.name,
+      subdomain: hospital.subdomain,
     });
 
     if (!tenant) {

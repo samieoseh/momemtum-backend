@@ -16,6 +16,7 @@ describe('AuthController', () => {
   const mockTenantService = {
     createTenant: jest.fn(),
     getTenantId: jest.fn(),
+    createSubdomain: jest.fn().mockReturnValue('mocked-subdomain'),
   };
 
   const mockAuthService = {
@@ -59,8 +60,13 @@ describe('AuthController', () => {
 
       await controller.registerHospital(dto);
 
-      expect(tenantService.createTenant).toHaveBeenCalledWith(dto.name);
-      expect(authService.registerHospital).toHaveBeenCalledWith(dto);
+      expect(tenantService.createTenant).toHaveBeenCalledWith(
+        'mocked-subdomain',
+      );
+      expect(authService.registerHospital).toHaveBeenCalledWith(
+        dto,
+        'mocked-subdomain',
+      );
     });
   });
 

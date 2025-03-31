@@ -59,7 +59,7 @@ describe('AuthService (Tenant-Aware)', () => {
   };
 
   const mockTenantService = {
-    findByHospitalName: jest.fn().mockResolvedValue({ _id: 'tenant-id' }),
+    findBySubdomain: jest.fn().mockResolvedValue({ _id: 'tenant-id' }),
     createTenant: jest.fn().mockResolvedValue({
       _id: 'tenant-id',
       hospitalName: 'Test Hospital',
@@ -113,12 +113,12 @@ describe('AuthService (Tenant-Aware)', () => {
 
       mockHospitalModel.create.mockResolvedValue(mockHospital);
 
-      const result = await service.registerHospital(dto);
+      const result = await service.registerHospital(dto, 'test-domain');
       expect(result).toEqual({ _id: '123', tenantId: 'tenant-id' });
       expect(mockHospitalModel.create).toHaveBeenCalledWith({
         ...dto,
-        subdomain: 'test-domain',
         tenantId: 'tenant-id',
+        subdomain: 'test-domain',
       });
       expect(mockHospitalModel.create).toHaveBeenCalledTimes(1);
     });
