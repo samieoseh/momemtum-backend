@@ -36,14 +36,12 @@ export class AuthService {
     return await userModel.findOne({ email });
   }
 
-  async registerHospital(hospitalRegistrationDto: HospitalRegistrationDto) {
+  async registerHospital(
+    hospitalRegistrationDto: HospitalRegistrationDto,
+    subdomain: string,
+  ) {
     try {
-      const subdomain = await this.tenantService.createSubdomain(
-        hospitalRegistrationDto.name,
-      );
-      const tenant = await this.tenantService.findByHospitalName(
-        hospitalRegistrationDto.name,
-      );
+      const tenant = await this.tenantService.findBySubdomain(subdomain);
 
       if (!tenant) {
         throw new NotFoundException('Tenant not found');
