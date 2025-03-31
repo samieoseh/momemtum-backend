@@ -5,6 +5,14 @@ export type HospitalDocument = HydratedDocument<Hospital>;
 
 @Schema({ timestamps: true })
 export class Hospital {
+  @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: 'User',
+    unique: true,
+    required: true,
+  })
+  tenantId: string;
+
   @Prop({ required: true, trim: true })
   name: string;
 

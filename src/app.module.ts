@@ -48,6 +48,7 @@ export class AppModule {
     consumer
       .apply(TenantMiddleware)
       .exclude({ path: 'auth/register-hospital', method: RequestMethod.POST })
+      .exclude({ path: 'hospitals/*path', method: RequestMethod.ALL })
       .exclude({
         path: 'auth/get-tenant-id/:subdomain',
         method: RequestMethod.GET,
