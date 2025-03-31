@@ -3,7 +3,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 @Schema()
 export class Tenant {
   @Prop({ required: true, unique: true })
-  companyName: string;
+  hospitalName: string;
 
   @Prop({ required: true, unique: true })
   databaseUri: string;

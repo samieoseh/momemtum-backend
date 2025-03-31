@@ -3,12 +3,14 @@ import { TenantDatabaseService } from './tenant.database.service';
 import { Tenant, TenantSchema } from './domain/tenant.schema';
 import { MongooseModule } from '@nestjs/mongoose';
 import { TenantService } from './tenant.service';
-import { Company, CompanySchema } from '../auth/domain/company.schema';
+import { Hospital, HospitalSchema } from '../hospitals/domain/hospital.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Tenant.name, schema: TenantSchema }]), // Register model
-    MongooseModule.forFeature([{ name: Company.name, schema: CompanySchema }]),
+    MongooseModule.forFeature([
+      { name: Hospital.name, schema: HospitalSchema },
+    ]),
   ],
   providers: [TenantDatabaseService, TenantService],
   exports: [TenantDatabaseService, TenantService],

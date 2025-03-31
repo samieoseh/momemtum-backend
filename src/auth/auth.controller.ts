@@ -12,7 +12,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login-dto';
 import { ForgetPasswordDto } from './dto/forgot-password-dto';
 import { ResetPasswordDto } from './dto/reset-password-dto';
-import { CompanyRegistrationDto } from './dto/company-registration-dto';
+import { HospitalRegistrationDto } from '../hospitals/dto/hospital-registration-dto';
 import { TenantService } from '../tenant/tenant.service';
 import { Connection } from 'mongoose';
 import { Request } from 'express';
@@ -24,18 +24,18 @@ export class AuthController {
     private readonly tenantService: TenantService,
   ) {}
 
-  @Post('/register-company')
+  @Post('/register-hospital')
   @HttpCode(201)
-  async registerCompany(
-    @Body() companyRegistrationDto: CompanyRegistrationDto,
+  async registerHospital(
+    @Body() hospitalRegistrationDto: HospitalRegistrationDto,
   ) {
     // create user database
-    await this.tenantService.createTenant(companyRegistrationDto.companyName);
+    await this.tenantService.createTenant(hospitalRegistrationDto.name);
 
-    const newCompany = await this.authService.registerCompany(
-      companyRegistrationDto,
+    const newHospital = await this.authService.registerHospital(
+      hospitalRegistrationDto,
     );
-    return { company: newCompany, message: 'Company created successfully' };
+    return { hospital: newHospital, message: 'Hospital created successfully' };
   }
 
   @Post('/register-admin')

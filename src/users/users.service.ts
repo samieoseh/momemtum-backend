@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Connection } from 'mongoose';
-import { UserSchema } from '../auth/domain/user.schema';
+import { UserSchema } from './domain/user.schema';
 
 @Injectable()
 export class UsersService {

@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
-import { User } from 'src/auth/domain/user.schema';
+import { User } from 'src/users/domain/user.schema';
 
 describe('UsersService', () => {
   let service: UsersService;

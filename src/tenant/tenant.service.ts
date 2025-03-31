@@ -7,40 +7,40 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Tenant } from './domain/tenant.schema';
-import { Company } from '../auth/domain/company.schema';
+import { Hospital } from '../hospitals/domain/hospital.schema';
 
 @Injectable()
 export class TenantService {
   constructor(
     @InjectModel(Tenant.name) private tenantModel: Model<Tenant>,
-    @InjectModel(Company.name) private companyModel: Model<Company>,
+    @InjectModel(Hospital.name) private hospitalModel: Model<Hospital>,
   ) {}
 
-  async createTenant(companyName: string): Promise<Tenant> {
+  async createTenant(hospitalName: string): Promise<Tenant> {
     let databaseUri: string;
     if (process.env.NODE_ENV === 'development') {
-      databaseUri = `${process.env.COMPANY_URI}/${companyName}_db`;
+      databaseUri = `${process.env.HOSPITAL_URI}/${hospitalName}_db`;
     } else {
-      databaseUri = `${process.env.COMPANY_URI}/${companyName}_db?retryWrites=true&w=majority&appName=Cluster0`;
+      databaseUri = `${process.env.HOSPITAL_URI}/${hospitalName}_db?retryWrites=true&w=majority&appName=Cluster0`;
     }
 
-    const newTenant = new this.tenantModel({ companyName, databaseUri });
+    const newTenant = new this.tenantModel({ hospitalName, databaseUri });
     return newTenant.save();
   }
 
-  async findByCompanyName(companyName: string) {
-    return await this.tenantModel.findOne({ companyName: companyName });
+  async findByHospitalName(name: string) {
+    return await this.tenantModel.findOne({ hospitalName: name });
   }
 
   async getTenantId(subdomain: string) {
-    const company = await this.companyModel.findOne({ subdomain: subdomain });
+    const hospital = await this.hospitalModel.findOne({ subdomain: subdomain });
 
-    if (!company) {
-      throw new NotFoundException('Company does not exist');
+    if (!hospital) {
+      throw new NotFoundException('Hospital does not exist');
     }
 
     const tenant = await this.tenantModel.findOne({
-      companyName: company.companyName,
+      hospitalName: hospital.name,
     });
 
     if (!tenant) {
@@ -50,8 +50,8 @@ export class TenantService {
     return tenant._id;
   }
 
-  async createSubdomain(companyName: string): Promise<string> {
-    const subdomain = companyName.toLowerCase().replace(/\s+/g, '-');
+  async createSubdomain(hospitalName: string): Promise<string> {
+    const subdomain = hospitalName.toLowerCase().replace(/\s+/g, '-');
     return subdomain;
   }
 }

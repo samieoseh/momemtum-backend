@@ -2,18 +2,20 @@ import { Module } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { MongooseModule } from '@nestjs/mongoose';
-import { User, UserSchema } from './domain/user.schema';
+import { User, UserSchema } from '../users/domain/user.schema';
 import { JwtModule } from '@nestjs/jwt';
 import { JWTStrategy } from 'src/jwt/jwt.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { Company, CompanySchema } from './domain/company.schema';
+import { Hospital, HospitalSchema } from '../hospitals/domain/hospital.schema';
 import { TenantModule } from 'src/tenant/tenant.module';
 import { UsersModule } from 'src/users/users.module';
 import { RolesModule } from 'src/roles/roles.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Company.name, schema: CompanySchema }]),
+    MongooseModule.forFeature([
+      { name: Hospital.name, schema: HospitalSchema },
+    ]),
     JwtModule.registerAsync({
       imports: [ConfigModule], // Load ConfigModule before JwtModule
       inject: [ConfigService],
