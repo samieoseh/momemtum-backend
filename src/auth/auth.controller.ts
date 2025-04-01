@@ -7,7 +7,7 @@ import {
   Post,
   Req,
 } from '@nestjs/common';
-import { SignupDto } from './dto/signup-dto';
+import { DoctorDto } from './dto/doctor-signup-dto';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login-dto';
 import { ForgetPasswordDto } from './dto/forgot-password-dto';
@@ -16,6 +16,7 @@ import { HospitalRegistrationDto } from '../hospitals/dto/hospital-registration-
 import { TenantService } from '../tenant/tenant.service';
 import { Connection } from 'mongoose';
 import { Request } from 'express';
+import { SignupDto } from './dto/signup-dto';
 
 @Controller('auth')
 export class AuthController {
@@ -67,7 +68,29 @@ export class AuthController {
     }
 
     const newUser = await this.authService.signup(signupDto, tenantConnection);
-    return { user: newUser, message: 'User created successfully' };
+    return {
+      user: newUser,
+      message: 'User created successfully',
+    };
+  }
+
+  @Post('/register-doctor')
+  async registerDoctor(@Body() doctorDto: DoctorDto, @Req() req: Request) {
+    const tenantConnection: Connection = req['tenantConnection'];
+
+    if (!tenantConnection) {
+      throw new Error('Tenant database connection is missing');
+    }
+
+    const newDoctor = await this.authService.registerDoctor(
+      doctorDto,
+      tenantConnection,
+    );
+
+    return {
+      doctor: newDoctor,
+      message: 'Doctor created successfully',
+    };
   }
 
   @Post('/login')
@@ -120,7 +143,6 @@ export class AuthController {
   @HttpCode(200)
   async getTenantId(@Param('subdomain') subdomain: string) {
     const tenantId = await this.tenantService.getTenantId(subdomain);
-    console.log({ tenantId });
 
     return { exists: true, tenantId };
   }

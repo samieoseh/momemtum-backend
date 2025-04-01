@@ -2,12 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { TenantService } from '../tenant/tenant.service';
-import { SignupDto } from './dto/signup-dto';
 import { LoginDto } from './dto/login-dto';
 import { ForgetPasswordDto } from './dto/forgot-password-dto';
 import { ResetPasswordDto } from './dto/reset-password-dto';
 import { HospitalRegistrationDto } from '../hospitals/dto/hospital-registration-dto';
 import { Connection } from 'mongoose';
+import { SignupDto } from './dto/signup-dto';
+import { DoctorDto } from './dto/doctor-signup-dto';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -22,6 +23,7 @@ describe('AuthController', () => {
   const mockAuthService = {
     registerHospital: jest.fn(),
     signup: jest.fn(),
+    registerDoctor: jest.fn(),
     login: jest.fn(),
     forgotPassword: jest.fn(),
     resetPassword: jest.fn(),
@@ -126,14 +128,32 @@ describe('AuthController', () => {
       };
 
       mockAuthService.signup.mockResolvedValue({
-        id: 1,
+        _id: '123',
         email: dto.email,
       });
-
       const req = { tenantConnection: mockTenantConnection } as any;
       await controller.signup(dto, req);
 
       expect(authService.signup).toHaveBeenCalledWith(
+        dto,
+        mockTenantConnection,
+      );
+    });
+  });
+
+  describe('registerDoctor', () => {
+    it('should call AuthService.registerDoctor with tenantConnection', async () => {
+      const dto: DoctorDto = {
+        medicalLicenseNumber: '12345678',
+        specialization: 'Radiology',
+        yearsOfExperience: 2,
+        userId: '123',
+      };
+
+      const req = { tenantConnection: mockTenantConnection } as any;
+      await controller.registerDoctor(dto, req);
+
+      expect(authService.registerDoctor).toHaveBeenCalledWith(
         dto,
         mockTenantConnection,
       );
