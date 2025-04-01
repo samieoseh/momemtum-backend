@@ -14,6 +14,7 @@ import { Tenant, TenantSchema } from './tenant/domain/tenant.schema';
 import { TenantMiddleware } from './tenant/middlewares/tenant.middleware';
 import { TenantDatabaseService } from './tenant/tenant.database.service';
 import { HospitalsModule } from './hospitals/hospitals.module';
+import { DoctorsModule } from './doctors/doctors.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { HospitalsModule } from './hospitals/hospitals.module';
     RolesModule,
     TenantModule,
     HospitalsModule,
+    DoctorsModule,
   ],
   controllers: [AppController],
   providers: [AppService, TenantDatabaseService],

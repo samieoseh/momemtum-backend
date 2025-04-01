@@ -5,7 +5,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { SignupDto } from './dto/signup-dto';
+import { DoctorDto } from './dto/doctor-signup-dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserSchema } from '../users/domain/user.schema';
@@ -20,11 +20,14 @@ import { Hospital } from '../hospitals/domain/hospital.schema';
 import { Connection } from 'mongoose';
 import { RolesService } from '../roles/roles.service';
 import { TenantService } from '../tenant/tenant.service';
+import { SignupDto } from './dto/signup-dto';
+import { Doctor, DoctorSchema } from '../doctors/domain/doctors.schema';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectModel(Hospital.name) private hospitalModel: Model<Hospital>,
+    @InjectModel(Doctor.name) private doctorModel: Model<Doctor>,
     private jwtService: JwtService,
     private readonly mailService: MailerService,
     private readonly roleService: RolesService,
@@ -95,21 +98,19 @@ export class AuthService {
       throw error;
     }
   }
+
   async signup(signupDto: SignupDto, tenantConnection: Connection) {
     try {
       const userModel = tenantConnection.model('User', UserSchema);
 
       const salt = await bcrypt.genSalt(10);
       const passwordHash = await bcrypt.hash(signupDto.password, salt);
-      console.log({ signupDto });
 
-      await userModel.create({ ...signupDto, password: passwordHash });
+      const savedUser = await userModel.create({
+        ...signupDto,
+        password: passwordHash,
+      });
 
-      // get the saved user
-      const savedUser = await this.findByEmail(
-        signupDto.email,
-        tenantConnection,
-      );
       if (!savedUser) {
         throw new NotFoundException('User not found');
       }
@@ -118,6 +119,32 @@ export class AuthService {
     } catch (error) {
       if (error.code === 11000) {
         throw new ConflictException('User already exists');
+      }
+      throw error;
+    }
+  }
+
+  async registerDoctor(doctorDto: DoctorDto, tenantConnection: Connection) {
+    try {
+      const doctorModel = tenantConnection.model('Doctor', DoctorSchema);
+      const userModel = tenantConnection.model('User', UserSchema);
+
+      const user = await userModel.findOne({ _id: doctorDto.userId });
+
+      if (!user) {
+        throw new NotFoundException('User does not exist');
+      }
+
+      const savedDoctor = await doctorModel.create(doctorDto);
+
+      if (!savedDoctor) {
+        throw new NotFoundException('Doctor not found');
+      }
+
+      return { _id: savedDoctor._id.toString() };
+    } catch (error) {
+      if (error.code === 11000) {
+        throw new ConflictException('Doctor already exists');
       }
       throw error;
     }
@@ -195,7 +222,6 @@ export class AuthService {
       }
 
       if (password !== confirmPassword) {
-        console.log('Password does not match');
         throw new UnauthorizedException('Password does not match');
       }
 

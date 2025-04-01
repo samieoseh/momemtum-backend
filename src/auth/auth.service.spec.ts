@@ -5,13 +5,15 @@ import { JwtService } from '@nestjs/jwt';
 import { MailerService } from '@nestjs-modules/mailer';
 import * as bcrypt from 'bcryptjs';
 import { ConfigModule } from '@nestjs/config';
-import { SignupDto } from './dto/signup-dto';
 import { ResetPasswordDto } from './dto/reset-password-dto';
 import { Connection } from 'mongoose';
 import { RolesService } from '../roles/roles.service';
 import { LoginDto } from './dto/login-dto';
 import { HospitalRegistrationDto } from '../hospitals/dto/hospital-registration-dto';
 import { TenantService } from '../tenant/tenant.service';
+import { SignupDto } from './dto/signup-dto';
+import { DoctorDto } from './dto/doctor-signup-dto';
+import { NotFoundException } from '@nestjs/common';
 
 jest.mock('bcryptjs', () => ({
   hash: jest.fn(),
@@ -31,6 +33,11 @@ describe('AuthService (Tenant-Aware)', () => {
     findOne: jest.fn(),
     create: jest.fn(),
     updateOne: jest.fn(),
+  };
+
+  const mockDoctorModel = {
+    create: jest.fn(),
+    findOne: jest.fn(),
   };
 
   const mockHospitalModel = {
@@ -78,6 +85,7 @@ describe('AuthService (Tenant-Aware)', () => {
         { provide: RolesService, useValue: mockRoleService },
         { provide: TenantService, useValue: mockTenantService },
         { provide: getModelToken('Hospital'), useValue: mockHospitalModel },
+        { provide: getModelToken('Doctor'), useValue: mockDoctorModel },
       ],
     }).compile();
 
@@ -178,6 +186,37 @@ describe('AuthService (Tenant-Aware)', () => {
     });
   });
 
+  describe('registerDoctor', () => {
+    it('should create a doctor with an ID', async () => {
+      const doctorDto: DoctorDto = {
+        medicalLicenseNumber: '12345678',
+        yearsOfExperience: 10,
+        userId: '123',
+        specialization: 'Radiology',
+      };
+
+      mockUserModel.findOne.mockResolvedValue({ _id: '123' });
+      mockDoctorModel.create.mockReturnValue(doctorDto);
+
+      const result = await service.registerDoctor(doctorDto, tenantConnection);
+      expect(result).toEqual({ _id: '123' });
+    });
+
+    it('should throw a 404 error if user does not exists', async () => {
+      const doctorDto: DoctorDto = {
+        medicalLicenseNumber: '12345678',
+        yearsOfExperience: 10,
+        userId: '123',
+        specialization: 'Radiology',
+      };
+      mockUserModel.findOne.mockResolvedValue(null);
+      mockDoctorModel.create.mockReturnValue(doctorDto);
+
+      await expect(
+        service.registerDoctor(doctorDto, tenantConnection),
+      ).rejects.toThrow(new NotFoundException('User does not exist'));
+    });
+  });
   describe('login', () => {
     it('should return a user if credentials are valid', async () => {
       const loginDto: LoginDto = {

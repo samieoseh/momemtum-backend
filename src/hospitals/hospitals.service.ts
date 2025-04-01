@@ -65,8 +65,6 @@ export class HospitalsService {
       tenant.databaseUri,
     );
 
-    console.log({ tenantConnection });
-
     await tenantConnection?.dropDatabase();
 
     return { tenantId, hospitalId };

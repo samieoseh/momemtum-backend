@@ -10,11 +10,14 @@ import { Hospital, HospitalSchema } from '../hospitals/domain/hospital.schema';
 import { TenantModule } from 'src/tenant/tenant.module';
 import { UsersModule } from 'src/users/users.module';
 import { RolesModule } from 'src/roles/roles.module';
+import { Doctor, DoctorSchema } from 'src/doctors/domain/doctors.schema';
+import { DoctorsModule } from 'src/doctors/doctors.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Hospital.name, schema: HospitalSchema },
+      { name: Doctor.name, schema: DoctorSchema },
     ]),
     JwtModule.registerAsync({
       imports: [ConfigModule], // Load ConfigModule before JwtModule
@@ -29,6 +32,7 @@ import { RolesModule } from 'src/roles/roles.module';
     TenantModule,
     UsersModule,
     RolesModule,
+    DoctorsModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JWTStrategy],
