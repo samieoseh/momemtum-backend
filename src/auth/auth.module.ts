@@ -12,6 +12,7 @@ import { UsersModule } from 'src/users/users.module';
 import { RolesModule } from 'src/roles/roles.module';
 import { Doctor, DoctorSchema } from 'src/doctors/domain/doctors.schema';
 import { DoctorsModule } from 'src/doctors/doctors.module';
+import { HospitalsModule } from 'src/hospitals/hospitals.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { DoctorsModule } from 'src/doctors/doctors.module';
     UsersModule,
     RolesModule,
     DoctorsModule,
+    HospitalsModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JWTStrategy],

@@ -1,5 +1,6 @@
 import {
   Body,
+  ConflictException,
   Controller,
   Get,
   HttpCode,
@@ -17,12 +18,14 @@ import { TenantService } from '../tenant/tenant.service';
 import { Connection } from 'mongoose';
 import { Request } from 'express';
 import { SignupDto } from './dto/signup-dto';
+import { HospitalsService } from '../hospitals/hospitals.service';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly tenantService: TenantService,
+    private readonly hospitalService: HospitalsService,
   ) {}
 
   @Post('/register-hospital')
@@ -34,6 +37,21 @@ export class AuthController {
     const subdomain = await this.tenantService.createSubdomain(
       hospitalRegistrationDto.name,
     );
+
+    const tenant = await this.tenantService.findBySubdomain(subdomain);
+
+    if (tenant) {
+      throw new ConflictException('Tenant already exists');
+    }
+
+    const hospital = await this.hospitalService.findHospitalByEmail(
+      hospitalRegistrationDto.email,
+    );
+
+    if (hospital) {
+      throw new ConflictException('Hospital already exists');
+    }
+
     await this.tenantService.createTenant(subdomain);
 
     const newHospital = await this.authService.registerHospital(

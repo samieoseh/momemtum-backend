@@ -22,6 +22,9 @@ export class HospitalsService {
   async findHospitalByTenantId(id: string) {
     return await this.hospitalModel.findOne({ tenantId: id });
   }
+  async findHospitalByEmail(email: string) {
+    return await this.hospitalModel.findOne({ email });
+  }
   async updateHospital(id: string, hospitalUpdateDto: HospitalUpdateDto) {
     const hospital = await this.findHospitalByTenantId(
       hospitalUpdateDto.tenantId,

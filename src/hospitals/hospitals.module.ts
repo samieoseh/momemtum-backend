@@ -17,5 +17,6 @@ import { TenantDatabaseService } from 'src/tenant/tenant.database.service';
   ],
   controllers: [HospitalsController],
   providers: [HospitalsService],
+  exports: [HospitalsService],
 })
 export class HospitalsModule {}

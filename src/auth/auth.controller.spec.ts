@@ -9,14 +9,22 @@ import { HospitalRegistrationDto } from '../hospitals/dto/hospital-registration-
 import { Connection } from 'mongoose';
 import { SignupDto } from './dto/signup-dto';
 import { DoctorDto } from './dto/doctor-signup-dto';
+import { HospitalsService } from '../hospitals/hospitals.service';
 
 describe('AuthController', () => {
   let controller: AuthController;
   let authService: AuthService;
+  let hospitalsService: HospitalsService;
   let tenantService: TenantService;
+
+  const mockHospitalService = {
+    findHospitalByEmail: jest.fn(),
+  };
+
   const mockTenantService = {
     createTenant: jest.fn(),
     getTenantId: jest.fn(),
+    findBySubdomain: jest.fn(),
     createSubdomain: jest.fn().mockReturnValue('mocked-subdomain'),
   };
 
@@ -38,12 +46,14 @@ describe('AuthController', () => {
       providers: [
         { provide: AuthService, useValue: mockAuthService },
         { provide: TenantService, useValue: mockTenantService },
+        { provide: HospitalsService, useValue: mockHospitalService },
       ],
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
     authService = module.get<AuthService>(AuthService);
     tenantService = module.get<TenantService>(TenantService);
+    hospitalsService = module.get<HospitalsService>(HospitalsService);
   });
 
   describe('registerHospital', () => {
